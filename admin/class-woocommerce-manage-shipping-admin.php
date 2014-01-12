@@ -128,16 +128,13 @@ class Woocommerce_Manage_Shipping_Admin {
 		$screen = get_current_screen();
 		if ( $this->plugin_screen_hook_suffix == $screen->id ) {
 			wp_enqueue_style( $this->plugin_slug .'-admin-styles', plugins_url( 'assets/css/admin.css', __FILE__ ), array(), Woocommerce_Manage_Shipping::VERSION );
+
 		}
 
 	}
 
 	/**
 	 * Register and enqueue admin-specific JavaScript.
-	 *
-	 * @TODO:
-	 *
-	 * - Rename "Plugin_Name" to the name your plugin
 	 *
 	 * @since     1.0.0
 	 *
@@ -193,9 +190,21 @@ class Woocommerce_Manage_Shipping_Admin {
 	 * @since    1.0.0
 	 */
 	public function display_plugin_admin_page() {
-		include_once( 'views/admin.php' );
+		if($_GET["ship_order_item"]) {
+			$this->ship_order_item($_GET["ship_order_item"]);
+		} else {
+			include_once( 'views/admin.php' );
+		}
 	}
 
+	private function ship_order_item($order_item) {
+		global $wpdb;
+		$prefix = $wpdb->prefix;
+		
+		//echo "Shipping $order_item";
+		$query = "INSERT INTO {$prefix}woocommerce_order_itemmeta (order_item_id, meta_key, meta_value) VALUES ('{$order_item}','shipped',NOW())";
+		$wpdb->query($query);
+	}
 	/**
 	 * Add settings action link to the plugins page.
 	 *
@@ -236,6 +245,34 @@ class Woocommerce_Manage_Shipping_Admin {
 	 */
 	public function filter_method_name() {
 		// @TODO: Define your filter hook callback here
+	}
+	
+	public function get_orders() {
+		global $wpdb;
+		$prefix=$wpdb->prefix;
+		$query = "SELECT *, q.meta_value AS quantity, s.meta_value AS shipped
+					FROM {$prefix}posts o
+					LEFT JOIN {$prefix}woocommerce_order_items i ON (i.order_id=o.ID)
+					LEFT JOIN {$prefix}woocommerce_order_itemmeta s ON (s.order_item_id=i.order_item_id AND s.meta_key LIKE 'shipped')
+					LEFT JOIN {$prefix}woocommerce_order_itemmeta q ON (q.order_item_id=i.order_item_id AND q.meta_key LIKE '_qty')
+
+					LEFT JOIN {$prefix}woocommerce_order_itemmeta m ON (m.order_item_id=i.order_item_id)
+
+					WHERE o.post_type='shop_order' 
+					AND i.order_item_type='line_item'
+					AND m.meta_key NOT LIKE '_qty' AND m.meta_key NOT LIKE '_tax_class' AND m.meta_key NOT LIKE '_product_id' AND m.meta_key NOT LIKE '_variation_id' AND m.meta_key NOT LIKE '_line_subtotal' AND m.meta_key NOT LIKE '_line_total' AND m.meta_key NOT LIKE '_line_tax' AND m.meta_key NOT LIKE '_line_subtotal_tax' AND m.meta_key NOT LIKE 'purchased' AND m.meta_key NOT LIKE 'shipped' 
+					AND o.ID IN (
+						SELECT o.ID
+						FROM {$prefix}posts o
+						JOIN {$prefix}term_relationships r ON (r.object_id=o.ID)
+						JOIN {$prefix}term_taxonomy x ON (r.term_taxonomy_id=x.term_taxonomy_id)
+						JOIN {$prefix}terms t ON (x.term_id=t.term_id)
+					  WHERE
+					  	t.slug='processing')
+					 ORDER BY o.ID DESC, i.order_item_id
+					 ";
+		return $wpdb->get_results($query);
+
 	}
 
 }
