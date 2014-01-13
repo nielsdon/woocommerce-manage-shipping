@@ -220,26 +220,10 @@ class Woocommerce_Manage_Shipping_Admin {
 
 	private function ship_order_item($order_item) {
 		woocommerce_add_order_item_meta($order_item,"shipped",date("r"));
-		/*
-		global $wpdb;
-		$prefix = $wpdb->prefix;
-		
-		//echo "Shipping $order_item";
-		$query = "INSERT INTO {$prefix}woocommerce_order_itemmeta (order_item_id, meta_key, meta_value) VALUES ('{$order_item}','shipped',NOW())";
-		$wpdb->query($query);
-		*/
 	}
 	
 	private function undo_ship_order_item($order_item) {
 		woocommerce_delete_order_item_meta($order_item,"shipped");
-/*
-		global $wpdb;
-		$prefix = $wpdb->prefix;
-		
-		//echo "Shipping $order_item";
-		$query = "DELETE FROM {$prefix}woocommerce_order_itemmeta WHERE order_item_id='{$order_item}' AND meta_key='shipped'";
-		$wpdb->query($query);
-		*/
 	}
 	
 	/*
