@@ -65,7 +65,8 @@ class Woocommerce_Manage_Shipping_Admin {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 
 		// Add the options page and menu item.
-		add_action( 'admin_menu', array( $this, 'add_plugin_admin_menu' ) );
+		//add_action( 'admin_menu', array( $this, 'add_plugin_admin_menu' ) );
+		add_action( 'admin_menu', array( $this, 'add_plugin_submenu_page' ) );
 
 		// Add an action link pointing to the options page.
 		$plugin_basename = plugin_basename( plugin_dir_path( __DIR__ ) . $this->plugin_slug . '.php' );
@@ -181,7 +182,21 @@ class Woocommerce_Manage_Shipping_Admin {
 			$this->plugin_slug,
 			array( $this, 'display_plugin_admin_page' )
 		);
-
+	}
+	
+	public function add_plugin_submenu_page() {
+		/*
+		 * Add a settings page for this plugin to the Woocommerce menu.
+		 *
+		 */
+		$this->plugin_screen_hook_suffix = add_submenu_page(
+			'woocommerce',
+			__( 'Manage shipping', $this->plugin_slug ),
+			__( 'Manage shipping', $this->plugin_slug ),
+			'manage_options',
+			$this->plugin_slug,
+			array( $this, 'display_plugin_admin_page' )
+		);
 	}
 
 	/**
@@ -191,19 +206,47 @@ class Woocommerce_Manage_Shipping_Admin {
 	 */
 	public function display_plugin_admin_page() {
 		if($_GET["ship_order_item"]) {
-			$this->ship_order_item($_GET["ship_order_item"]);
+			if(!$_GET["undo"]) { //box was checked
+				$this->ship_order_item($_GET["ship_order_item"]);
+			} else { //box was unchecked: undo shipping
+				$this->undo_ship_order_item($_GET["ship_order_item"]);				
+			}
+		} elseif($_GET["complete_order"]) {
+			$this->complete_order($_GET["complete_order"]);
 		} else {
 			include_once( 'views/admin.php' );
 		}
 	}
 
 	private function ship_order_item($order_item) {
+		woocommerce_add_order_item_meta($order_item,"shipped",date("r"));
+		/*
 		global $wpdb;
 		$prefix = $wpdb->prefix;
 		
 		//echo "Shipping $order_item";
 		$query = "INSERT INTO {$prefix}woocommerce_order_itemmeta (order_item_id, meta_key, meta_value) VALUES ('{$order_item}','shipped',NOW())";
 		$wpdb->query($query);
+		*/
+	}
+	
+	private function undo_ship_order_item($order_item) {
+		woocommerce_delete_order_item_meta($order_item,"shipped");
+/*
+		global $wpdb;
+		$prefix = $wpdb->prefix;
+		
+		//echo "Shipping $order_item";
+		$query = "DELETE FROM {$prefix}woocommerce_order_itemmeta WHERE order_item_id='{$order_item}' AND meta_key='shipped'";
+		$wpdb->query($query);
+		*/
+	}
+	
+	/*
+	* sets order status to 'completed'
+	*/
+	private function complete_order($order_id) {
+		wp_set_post_terms($order_id, "completed", "shop_order_status");
 	}
 	/**
 	 * Add settings action link to the plugins page.
@@ -271,7 +314,15 @@ class Woocommerce_Manage_Shipping_Admin {
 					  	t.slug='processing')
 					 ORDER BY o.ID DESC, i.order_item_id
 					 ";
-		return $wpdb->get_results($query);
+		$orders = array();
+		foreach($wpdb->get_results($query) as $item) {
+			$orders[$item->ID][$item->order_item_id]["meta"] .= $item->meta_key . " : " . $item->meta_value . "<br/>\n";
+			$orders[$item->ID][$item->order_item_id]["shipped"] = $item->shipped;
+			$orders[$item->ID][$item->order_item_id]["name"] = $item->order_item_name;
+			$orders[$item->ID][$item->order_item_id]["quantity"] = $item->quantity;
+		}
+		//return $wpdb->get_results($query);
+		return $orders;
 
 	}
 
