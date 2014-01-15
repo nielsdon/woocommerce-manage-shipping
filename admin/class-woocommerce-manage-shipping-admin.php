@@ -211,6 +211,18 @@ class Woocommerce_Manage_Shipping_Admin {
 			} else { //box was unchecked: undo shipping
 				$this->undo_ship_order_item($_GET["ship_order_item"]);				
 			}
+		} elseif($_GET["ready_order_item"]) {
+			if(!$_GET["undo"]) { //box was checked
+				$this->ready_order_item($_GET["ready_order_item"]);
+			} else { //box was unchecked: undo shipping
+				$this->undo_ready_order_item($_GET["ready_order_item"]);				
+			}
+		} elseif($_GET["purchased_order_item"]) {
+			if(!$_GET["undo"]) { //box was checked
+				$this->purchase_order_item($_GET["purchased_order_item"]);
+			} else { //box was unchecked: undo shipping
+				$this->undo_purchase_order_item($_GET["purchased_order_item"]);				
+			}
 		} elseif($_GET["complete_order"]) {
 			$this->complete_order($_GET["complete_order"]);
 		} else {
@@ -219,13 +231,28 @@ class Woocommerce_Manage_Shipping_Admin {
 	}
 
 	private function ship_order_item($order_item) {
-		woocommerce_add_order_item_meta($order_item,"shipped",date("r"));
+		woocommerce_add_order_item_meta($order_item,"_shipped",date("r"));
 	}
 	
 	private function undo_ship_order_item($order_item) {
-		woocommerce_delete_order_item_meta($order_item,"shipped");
+		woocommerce_delete_order_item_meta($order_item,"_shipped");
+	}
+
+	private function ready_order_item($order_item) {
+		woocommerce_add_order_item_meta($order_item,"_ready",date("r"));
 	}
 	
+	private function undo_ready_order_item($order_item) {
+		woocommerce_delete_order_item_meta($order_item,"_ready");
+	}	
+	
+	private function purchase_order_item($order_item) {
+		woocommerce_add_order_item_meta($order_item,"_purchased",date("r"));
+	}
+	
+	private function undo_purchase_order_item($order_item) {
+		woocommerce_delete_order_item_meta($order_item,"_purchased");
+	}	
 	/*
 	* sets order status to 'completed'
 	*/
@@ -275,39 +302,30 @@ class Woocommerce_Manage_Shipping_Admin {
 	}
 	
 	public function get_orders() {
-		global $wpdb;
-		$prefix=$wpdb->prefix;
-		$query = "SELECT *, q.meta_value AS quantity, s.meta_value AS shipped
-					FROM {$prefix}posts o
-					LEFT JOIN {$prefix}woocommerce_order_items i ON (i.order_id=o.ID)
-					LEFT JOIN {$prefix}woocommerce_order_itemmeta s ON (s.order_item_id=i.order_item_id AND s.meta_key LIKE 'shipped')
-					LEFT JOIN {$prefix}woocommerce_order_itemmeta q ON (q.order_item_id=i.order_item_id AND q.meta_key LIKE '_qty')
-
-					LEFT JOIN {$prefix}woocommerce_order_itemmeta m ON (m.order_item_id=i.order_item_id)
-
-					WHERE o.post_type='shop_order' 
-					AND i.order_item_type='line_item'
-					AND m.meta_key NOT LIKE '_qty' AND m.meta_key NOT LIKE '_tax_class' AND m.meta_key NOT LIKE '_product_id' AND m.meta_key NOT LIKE '_variation_id' AND m.meta_key NOT LIKE '_line_subtotal' AND m.meta_key NOT LIKE '_line_total' AND m.meta_key NOT LIKE '_line_tax' AND m.meta_key NOT LIKE '_line_subtotal_tax' AND m.meta_key NOT LIKE 'purchased' AND m.meta_key NOT LIKE 'shipped' 
-					AND o.ID IN (
-						SELECT o.ID
-						FROM {$prefix}posts o
-						JOIN {$prefix}term_relationships r ON (r.object_id=o.ID)
-						JOIN {$prefix}term_taxonomy x ON (r.term_taxonomy_id=x.term_taxonomy_id)
-						JOIN {$prefix}terms t ON (x.term_id=t.term_id)
-					  WHERE
-					  	t.slug='processing')
-					 ORDER BY o.ID DESC, i.order_item_id
-					 ";
-		$orders = array();
-		foreach($wpdb->get_results($query) as $item) {
-			$orders[$item->ID][$item->order_item_id]["meta"] .= $item->meta_key . " : " . $item->meta_value . "<br/>\n";
-			$orders[$item->ID][$item->order_item_id]["shipped"] = $item->shipped;
-			$orders[$item->ID][$item->order_item_id]["name"] = $item->order_item_name;
-			$orders[$item->ID][$item->order_item_id]["quantity"] = $item->quantity;
-		}
-		//return $wpdb->get_results($query);
+		$args = array(
+			'post_type'			=> 'shop_order',
+			'post_status' 		=> 'publish',
+			'orderby' 			=> 'ID',
+			'order' 			=> 'desc',
+			'posts_per_page' => -1,
+			'tax_query' => array(
+				array(
+					'taxonomy' => 'shop_order_status',
+					'field' => 'slug',
+					'terms' => array('processing')
+				)
+			)
+		);
+	
+		$loop = new WP_Query( $args );
+        //echo $loop->request;
+		
+		while ( $loop->have_posts() ) : $loop->the_post();
+		
+			$order_id = $loop->post->ID;
+			$orders[] = new WC_Order($order_id);
+		endwhile;
 		return $orders;
-
 	}
 
 }

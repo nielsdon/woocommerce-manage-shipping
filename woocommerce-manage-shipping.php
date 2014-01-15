@@ -21,6 +21,13 @@
  * Domain Path:       /languages
  * GitHub Plugin URI: https://github.com/nielsdon/woocommerce-manage-shipping
  * Depends:           WooCommerce
+ *
+ * @TODO: 
+ * - stock (< 0 means we need to purchase)
+ * - purchased meta
+ * - quantity
+ * - simple products
+ * - ready for shipment meta
  */
 
 
