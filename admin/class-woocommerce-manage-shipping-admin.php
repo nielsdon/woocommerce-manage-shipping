@@ -258,7 +258,7 @@ class Woocommerce_Manage_Shipping_Admin {
 	*/
 	private function complete_order($order_id) {
 		$order = new WC_Order($order_id);
-		$order->update_status("completed", "Order status changed to completed");
+		$order->update_status("completed");
 	}
 	/**
 	 * Add settings action link to the plugins page.
