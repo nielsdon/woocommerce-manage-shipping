@@ -257,7 +257,8 @@ class Woocommerce_Manage_Shipping_Admin {
 	* sets order status to 'completed'
 	*/
 	private function complete_order($order_id) {
-		wp_set_post_terms($order_id, "completed", "shop_order_status");
+		$order = new WC_Order($order_id);
+		$order->update_status("completed", "Order status changed to completed");
 	}
 	/**
 	 * Add settings action link to the plugins page.
