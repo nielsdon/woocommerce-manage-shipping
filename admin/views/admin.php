@@ -97,6 +97,9 @@ update fay6zf1_woocommerce_order_itemmeta set meta_key="_shipped" where meta_key
 	$orders = $this->get_orders();
 	echo "<table>";
 	foreach($orders as $order) {
+		//when using sequential order numbers, do this:
+		$order_number = get_post_meta($order->id, "_order_number");
+		if(!$order_number){ $order_number = $order->id; }
 
 		echo "<thead class=\"order_{$order->id}\">";
 		echo "<tr class=\"\"><td colspan=\"10\"><hr style=\"height: 4px; background: black\"/></td></tr>\n";
@@ -106,7 +109,7 @@ update fay6zf1_woocommerce_order_itemmeta set meta_key="_shipped" where meta_key
 		echo "<tr class=\"\">";
 		echo "<td colspan=\"5\">";
 		echo "<a href=\"" . get_edit_post_link($order->id) . "\"><h2>";
-		echo "Order #{$order->id} - ";
+		echo "Order #{$order_number} - ";
 		echo $order->billing_first_name . " " . $order->billing_last_name . " - ";
 		echo $order->order_date;
 		echo "</h2></a>";
@@ -133,7 +136,7 @@ update fay6zf1_woocommerce_order_itemmeta set meta_key="_shipped" where meta_key
 			echo "<td>&nbsp;</td><td class=\"large\"><strong>";
 			echo $item["item_meta"]["_qty"][0];
 			echo " x </strong></td>";
-			echo "<td><a href=\"" . get_edit_post_link($product->post->id) . "\">" . $item["name"] . "</a></td>";
+			echo "<td><a href=\"" . get_edit_post_link($item["item_meta"]["_product_id"][0]) . "\">" . $item["name"] . "</a></td>";
 			echo "<td>";
 			foreach($item["item_meta"] as $att => $value) {
 				if(substr($att,0,1) != "_") {
