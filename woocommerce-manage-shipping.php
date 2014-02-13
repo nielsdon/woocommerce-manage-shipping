@@ -12,7 +12,7 @@
  * Plugin Name:       Woocommerce Manage Shipping
  * Plugin URI:        https://github.com/nielsdon/woocommerce-manage-shipping
  * Description:       Manage shipping and packaging of (partial) orders in a clear overview.
- * Version:           0.2
+ * Version:           0.3
  * Author:            Niels Donninger
  * Author URI:        http://donninger.nl
  * Text Domain:       en_US
