@@ -98,7 +98,7 @@ update fay6zf1_woocommerce_order_itemmeta set meta_key="_shipped" where meta_key
 	echo "<table>";
 	foreach($orders as $order) {
 		//when using sequential order numbers, do this:
-		$order_number = get_post_meta($order->id, "_order_number");
+		$order_number = get_post_meta($order->id, "_order_number", true);
 		if(!$order_number){ $order_number = $order->id; }
 
 		echo "<thead class=\"order_{$order->id}\">";
